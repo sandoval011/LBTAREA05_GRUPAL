@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat con Socket.IO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        .chat-box {
+            max-width: 400px;
+            margin: 20px auto;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #f1f1f1;
+        }
+
+        .chat-body {
+            padding: 10px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .message .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .message .contenido {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+
+        .message.received {
+            flex-direction: row;
+        }
+
+        .message .contenido {
+            background-color: #DCF8C6;
+        }
+
+        .message.received .contenido {
+            background-color: #E5E5EA;
+        }
+
+        .hora {
+            font-size: 12px;
+            color: #888;
+            margin-left: 5px;
+        }
+
+        .message .avatar {
+            align-self: flex-end;
+            margin-left: 10px;
+            margin-bottom: 5px;
+        }
+
+        form {
+            margin-bottom: 0;
+        }
+
+        .inicio-box {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+
+        .inicio-box h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .inicio-box form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .inicio-box form .form-group {
+            width: 100%;
+        }
+
+        .inicio-box form button {
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    <script>
+        var socket = io();
+
+        function enviarMensaje() {
+            var mensaje = document.getElementById('mensaje').value;
+            var nombre = document.getElementById('nombre').value; 
+            var foto = document.getElementById('foto').files[0]; 
+            var hora = obtenerHora(); 
+            var formData = new FormData();
+            formData.append('foto', foto); 
+
+            var reader = new FileReader();
+            reader.onload = function (event) {
+                var avatarURL = event.target.result;
+                socket.emit('chat message', { mensaje: mensaje, nombre: nombre, hora: hora, avatar: avatarURL });
+            };
+            reader.readAsDataURL(foto);
+
+            document.getElementById('mensaje').value = '';
+            return false;
+        }
+
+        socket.on('chat message', function (data) {
+            var listaMensajes = document.getElementById('lista-mensajes');
+            var mensaje = document.createElement('div');
+            mensaje.classList.add('message');
+
+            if (data.nombre === document.getElementById('nombre').value) {
+                mensaje.classList.add('sent');
+            } else {
+                mensaje.classList.add('received');
+            }
+
+            mensaje.innerHTML = '<img class="avatar" src="' + data.avatar + '">' +
+                '<div class="contenido">' + '<span class="nombre"><strong>' + data.nombre + '</strong></span>' + '<br>' + data.mensaje + '<span class="hora">' + data.hora + '</span></div>';
+            listaMensajes.appendChild(mensaje);
+            listaMensajes.scrollTop = listaMensajes.scrollHeight;
+        });
+
+        function obtenerHora() {
+            var ahora = new Date();
+            var hora = ahora.getHours();
+            var minutos = ahora.getMinutes();
+            return hora + ':' + (minutos < 10 ? '0' : '') + minutos;
+        }
+      
+        function mostrarChat() {
+            var nombre = document.getElementById('nombre').value;
+            if (nombre) {
+                document.getElementById('inicio').style.display = 'none';
+                document.getElementById('chat').style.display = 'block';
+            } else {
+                alert('Por favor, ingresa un nombre de usuario.');
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="inicio" class=" inicio-box card">
+            <h1 class="text-black-60 text-center">CHAT SC_CODE</h1>
+            <form id="usuarioForm" onsubmit="event.preventDefault(); mostrarChat();">
+                <div class="form-group">
+                    <label for="nombre">Nombre de usuario: </label>
+                    <input type="text" class="form-control" id="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="foto">Foto de perfil: </label>
+                    <input type="file" accept="image/*" class="form-control-file" id="foto" required>
+                </div>
+                <button type="submit" class="btn btn-info">Ingresar</button>
+            </form>
+        </div>
+        <div id="chat" style="display: none;">
+            <div class="container mt-5">
+                <div class="chat-box">
+                    <div class="chat-body" id="lista-mensajes"></div>
+                    <hr> 
+                    <div class="container mt-3">
+                        <form onsubmit="return enviarMensaje()">
+                            <div class="form-group d-flex">
+                                <input type="text" class="form-control flex-grow-1" id="mensaje" required>
+                                <button type="submit" class="btn btn-info ml-2">
+                                    <i class="fas fa-location-arrow"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
